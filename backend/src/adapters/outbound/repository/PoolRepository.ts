@@ -1,28 +1,81 @@
-import type { IPoolingRepository } from "../../../core/ports/outbound/IPoolingRepository.js";
-import { Pool } from "../../../core/domain/entities/Pool.js";
-import { db } from "../../../infrastructure/db/seed.js";
+import type { IRouteRepository } from "../../../core/ports/outbound/IRouteRepository.js";
+import { Route } from "../../../core/domain/entities/Routes.js";
+import { db } from "../../../infrastructure/db/connection.js";
 
-export class PoolRepository implements IPoolingRepository {
-  async save(pool: Pool): Promise<void> {
-    await db.$executeRaw`
-      INSERT INTO pools (id, year, created_at)
-      VALUES (${pool.id}, ${pool.year}, NOW());
-    `;
+export class RouteRepository implements IRouteRepository {
+  // Fetch all routes
+  async findAll(): Promise<Route[]> {
+    const result = await db.query(`
+      SELECT 
+        routeid AS "routeId",
+        vesseltype AS "vesselType",
+        fueltype AS "fuelType",
+        year,
+        ghgintensity AS "ghgIntensity",
+        fuelconsumption AS "fuelConsumption",
+        distance,
+        totalemissions AS "totalEmissions",
+        isbaseline AS "isBaseline"
+      FROM "Route"
+      ORDER BY id;
+    `);
 
-    for (const m of pool.members) {
-      await db.$executeRaw`
-        INSERT INTO pool_members (pool_id, ship_id, cb_before, cb_after)
-        VALUES (${pool.id}, ${m.shipId}, ${m.cbBefore}, ${m.cbAfter});
-      `;
-    }
+    return result.rows.map(
+      (r) =>
+        new Route({
+          id: r.routeId,
+          vesselType: r.vesselType,
+          fuelType: r.fuelType,
+          year: r.year,
+          ghgIntensity: r.ghgIntensity,
+          fuelConsumption: r.fuelConsumption,
+          distance: r.distance,
+          totalEmissions: r.totalEmissions,
+          isBaseline: r.isBaseline,
+        })
+    );
   }
 
-  async findByYear(year: number): Promise<Pool[]> {
-    const pools = await db.$queryRaw<
-      { id: string; year: number }[]
-    >`SELECT * FROM pools WHERE year=${year};`;
+  // Fetch the baseline route
+  async findBaseline(): Promise<Route | null> {
+    const result = await db.query(`
+      SELECT 
+        routeid AS "routeId",
+        vesseltype AS "vesselType",
+        fueltype AS "fuelType",
+        year,
+        ghgintensity AS "ghgIntensity",
+        fuelconsumption AS "fuelConsumption",
+        distance,
+        totalemissions AS "totalEmissions",
+        isbaseline AS "isBaseline"
+      FROM "Route"
+      WHERE isbaseline = true
+      LIMIT 1;
+    `);
 
-    return pools.map((p) => new Pool(p.id, p.year, []));
+    const r = result.rows[0];
+    return r
+      ? new Route({
+          id: r.routeId,
+          vesselType: r.vesselType,
+          fuelType: r.fuelType,
+          year: r.year,
+          ghgIntensity: r.ghgIntensity,
+          fuelConsumption: r.fuelConsumption,
+          distance: r.distance,
+          totalEmissions: r.totalEmissions,
+          isBaseline: r.isBaseline,
+        })
+      : null;
+  }
+
+  // Set a route as the baseline
+  async setBaseline(routeId: string): Promise<void> {
+    await db.query(`
+      UPDATE "Route"
+      SET isbaseline = CASE WHEN routeid = $1 THEN true ELSE false END;
+    `, [routeId]);
   }
 }
 

@@ -1,72 +1,88 @@
-import type { IRouteRepository } from "../../../core/ports/outbound/IRouteRepository.js";
+import { IRouteRepository } from "../../../core/ports/outbound/IRouteRepository.js";
 import { Route } from "../../../core/domain/entities/Routes.js";
-import { db } from "../../../infrastructure/db/seed.js";
+import { db } from "../../../infrastructure/db/connection.js";
 
 export class RouteRepository implements IRouteRepository {
   async findAll(): Promise<Route[]> {
-    const rows = await db.$queryRaw<
-      {
-        route_id: string;
-        vessel_type: string;
-        fuel_type: string;
-        year: number;
-        ghg_intensity: number;
-        fuel_consumption: number;
-        distance: number;
-        total_emissions: number;
-        is_baseline: boolean;
-      }[]
-    >`SELECT * FROM routes ORDER BY id;`;
+    const result = await db.query(`
+      SELECT 
+        routeid AS "routeId",
+        vesseltype AS "vesselType",
+        fueltype AS "fuelType",
+        year,
+        ghgintensity AS "ghgIntensity",
+        fuelconsumption AS "fuelConsumption",
+        distance,
+        totalemissions AS "totalEmissions",
+        isbaseline AS "isBaseline"
+      FROM "Route"
+      ORDER BY id;
+    `);
 
-    return rows.map(
+    return result.rows.map(
       (r) =>
         new Route({
-          id: r.route_id,
-          vesselType: r.vessel_type,
-          fuelType: r.fuel_type,
+          id: r.routeId,
+          vesselType: r.vesselType,
+          fuelType: r.fuelType,
           year: r.year,
-          ghgIntensity: r.ghg_intensity,
-          fuelConsumption: r.fuel_consumption,
+          ghgIntensity: r.ghgIntensity,
+          fuelConsumption: r.fuelConsumption,
           distance: r.distance,
-          totalEmissions: r.total_emissions,
-          isBaseline: r.is_baseline,
+          totalEmissions: r.totalEmissions,
+          isBaseline: r.isBaseline,
         })
     );
   }
 
   async findBaseline(): Promise<Route | null> {
-    const rows = await db.$queryRaw<
-      {
-        route_id: string;
-        vessel_type: string;
-        fuel_type: string;
-        year: number;
-        ghg_intensity: number;
-        fuel_consumption: number;
-        distance: number;
-        total_emissions: number;
-        is_baseline: boolean;
-      }[]
-    >`SELECT * FROM routes WHERE is_baseline = true LIMIT 1;`;
+    const result = await db.query(`
+      SELECT 
+        routeid AS "routeId",
+        vesseltype AS "vesselType",
+        fueltype AS "fuelType",
+        year,
+        ghgintensity AS "ghgIntensity",
+        fuelconsumption AS "fuelConsumption",
+        distance,
+        totalemissions AS "totalEmissions",
+        isbaseline AS "isBaseline"
+      FROM "Route"
+      WHERE isbaseline = true
+      LIMIT 1;
+    `);
 
-    const r = rows[0];
+    const r = result.rows[0];
     return r
       ? new Route({
-          id: r.route_id,
-          vesselType: r.vessel_type,
-          fuelType: r.fuel_type,
+          id: r.routeId,
+          vesselType: r.vesselType,
+          fuelType: r.fuelType,
           year: r.year,
-          ghgIntensity: r.ghg_intensity,
-          fuelConsumption: r.fuel_consumption,
+          ghgIntensity: r.ghgIntensity,
+          fuelConsumption: r.fuelConsumption,
           distance: r.distance,
-          totalEmissions: r.total_emissions,
-          isBaseline: r.is_baseline,
+          totalEmissions: r.totalEmissions,
+          isBaseline: r.isBaseline,
         })
       : null;
   }
 
   async setBaseline(id: string): Promise<void> {
-    await db.$executeRaw`UPDATE routes SET is_baseline = false;`;
-    await db.$executeRaw`UPDATE routes SET is_baseline = true WHERE route_id = ${id};`;
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(`UPDATE "Route" SET isbaseline = false;`);
+      await client.query(`UPDATE "Route" SET isbaseline = true WHERE routeid = $1;`, [id]);
+      await client.query("COMMIT");
+      console.log(`✅ Baseline route set to ${id}`);
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("❌ Failed to set baseline:", err);
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 }
+
