@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./adapters/ui/components/Navbar";
+import { Toaster } from "react-hot-toast";
 
 import RoutesPage from "./adapters/ui/pages/RoutesPage";
 import ComparePage from "./adapters/ui/pages/ComparePage";
@@ -22,6 +23,9 @@ function App() {
             <Route path="/pooling" element={<PoolingPage />} />
           </Routes>
         </main>
+
+        <Toaster position="top-right" reverseOrder={false} />
+        
       </div>
     </Router>
   );

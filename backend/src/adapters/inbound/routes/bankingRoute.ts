@@ -8,6 +8,7 @@ const controller = new BankingController(new BankRepository());
 router.post("/bank", async (req, res) => {
   const { shipId, year } = req.body;
   const entry = await controller.bankSurplus(shipId, year);
+  console.log(entry);
   res.json(entry);
 });
 

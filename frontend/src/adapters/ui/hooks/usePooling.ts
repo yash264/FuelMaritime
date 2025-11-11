@@ -12,11 +12,11 @@ export function usePooling(year: number) {
   const [members, setMembers] = useState<PoolMember[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadMembers = async () => {
-    const data = await fetchAdjustedCB(year);
-    setMembers(data);
-    setLoading(false);
-  };
+  // const loadMembers = async () => {
+  //   const data = await fetchAdjustedCB(year,shipId);
+  //   setMembers(data);
+  //   setLoading(false);
+  // };
 
   const handleCreatePool = async () => {
     const result = await createPool({ members, year });
@@ -24,7 +24,7 @@ export function usePooling(year: number) {
   };
 
   useEffect(() => {
-    loadMembers();
+    // loadMembers();
   }, [year]);
 
   const poolSum = members.reduce(

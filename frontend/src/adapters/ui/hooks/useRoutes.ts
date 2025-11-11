@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { fetchRoutes, setBaseline } from "../../infrastructure/api/routesApi";
 import { RouteData } from "../components/RoutesTable";
 
@@ -14,8 +15,18 @@ export function useRoutes() {
   };
 
   const handleSetBaseline = async (routeId: string) => {
-    await setBaseline(routeId);
-    loadRoutes();
+    toast.loading("Setting baseline...");
+
+    try {
+      await setBaseline(routeId);
+      toast.dismiss(); // remove loading toast
+      toast.success(`Baseline set successfully for route ${routeId}!`);
+      await loadRoutes();
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to set baseline. Please try again.");
+      console.error(error);
+    }
   };
 
   useEffect(() => {
@@ -24,3 +35,4 @@ export function useRoutes() {
 
   return { routes, loading, setBaseline: handleSetBaseline };
 }
+

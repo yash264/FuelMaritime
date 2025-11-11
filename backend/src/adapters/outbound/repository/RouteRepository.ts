@@ -15,7 +15,7 @@ export class RouteRepository implements IRouteRepository {
         distance,
         totalemissions AS "totalEmissions",
         isbaseline AS "isBaseline"
-      FROM "Route"
+      FROM "route"
       ORDER BY id;
     `);
 
@@ -47,7 +47,7 @@ export class RouteRepository implements IRouteRepository {
         distance,
         totalemissions AS "totalEmissions",
         isbaseline AS "isBaseline"
-      FROM "Route"
+      FROM "route"
       WHERE isbaseline = true
       LIMIT 1;
     `);
@@ -72,8 +72,11 @@ export class RouteRepository implements IRouteRepository {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-      await client.query(`UPDATE "Route" SET isbaseline = false;`);
-      await client.query(`UPDATE "Route" SET isbaseline = true WHERE routeid = $1;`, [id]);
+
+      // 🔹 Use lowercase table name
+      await client.query(`UPDATE "route" SET isbaseline = false;`);
+      await client.query(`UPDATE "route" SET isbaseline = true WHERE routeid = $1;`, [id]);
+
       await client.query("COMMIT");
       console.log(`✅ Baseline route set to ${id}`);
     } catch (err) {
@@ -85,4 +88,3 @@ export class RouteRepository implements IRouteRepository {
     }
   }
 }
-
